@@ -7,10 +7,13 @@ Pipeline parameters
 ========================================================================================
 */
 
-params.text_file = "files.txt"
+params.path_file = "files.txt"
 params.outdir = "results"
-params.Counts = 1
+params.counts = 1
 params.prefix = "VA"
+params.force_file = "."
+params.chr_changes = "1:10"
+params.min_len = 3000000
 
 
 process Getstats {
@@ -37,13 +40,16 @@ process Randomize {
 
     input:
     path bed_files
+    path force_file
+    val chr_changes
+    val min_len
 
     output:
     path "*_edited.bed"
 
     script:
     """
-    python3 "${projectDir}/bin/Randomizer.py" ${bed_files}
+    python3 "${projectDir}/bin/Randomizer.py" ${force_file} ${chr_changes} ${min_len} ${bed_files}
     """
 }
 
@@ -72,7 +78,7 @@ process Simulate {
                 anotherfname="\${anotherfname%.*}" 
                 if [ \${filename} == \${anotherfname} ]
                 then
-                    ngsngs -i \${m_line} -c 10 -l 120 -seq PE -f fq -qs 30 -incl \${file} -o ${prefix}
+                    ngsngs -i \${m_line} -c 10 -l 120 -seq PE -f fq -qs 30 -incl \${file} -o ${filename}
                 fi
             done < $input_file
     done
@@ -99,9 +105,9 @@ process OUT {
 
 
 workflow {
-    beds = Getstats(Channel.fromPath(params.text_file))
-    randomizer = Randomize(beds.collect())
-    Simulate(randomizer.collect(), Channel.fromPath(params.text_file), params.prefix)
+    beds = Getstats(Channel.fromPath(params.path_file))
+    randomizer = Randomize(beds.collect(), Channel.fromPath((params.force_file), params.chr_changes, params.min_len)
+    Simulate(randomizer.collect(), Channel.fromPath(params.path_file), params.prefix)
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2)
     OUT(Paired_reads, params.prefix)
 }
