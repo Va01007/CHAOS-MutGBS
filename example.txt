@@ -1,0 +1,5 @@
+Delet	Recipient.bed	Recipient_chr	Start	End
+Dupli	Recipient.bed	Recipient_chr	Start	End
+Inser	Donor.bed	Donor_chr	Start	End
+Trans	Donor.bed	Donor_chr	Start	End #important after any "Trans" you need write "Delet". Otherwise pipeline will work with it as "Inser"
+Delet	Recipient.bed	Recipient_chr	Start	End
