@@ -71,15 +71,13 @@ process Simulate {
     """
     for file in $new_bed_files
     do
-        filename=\$(basename "\${file}")
-        filename="\${filename%.*}" 
         while read -r m_line
             do
-                anotherfname=\$(basename "\${file}")
-                anotherfname="\${anotherfname%.*}" 
-                if [ \${filename} == \${anotherfname} ]
+                filename=\$(basename "\${m_line}")
+                filename="\${filename%.*}" 
+                if [ *\${filename}* == \${file} ]
                 then
-                    ngsngs -i \${m_line} -c 10 -t ${threads} -l 120 -seq PE -f fq -qs 30 -incl \${file} -o ${filename}
+                    ngsngs -i \${m_line} -c 10 -l 120 -seq PE -f fq -qs 30 -incl \${file} -o \${filename}
                 fi
             done < $input_file
     done
