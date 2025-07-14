@@ -107,7 +107,7 @@ process OUT {
 
 workflow {
     beds = Getstats(Channel.fromPath(params.path_file))
-    randomizer = Randomize(beds.collect(), Channel.fromPath((params.force_file), params.chr_changes, params.min_len)
+    randomizer = Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len)
     Simulate(randomizer.collect(), Channel.fromPath(params.path_file),  params.threads)
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2)
     OUT(Paired_reads, params.prefix)
