@@ -11,9 +11,10 @@ params.path_file = "files.txt"
 params.outdir = "results"
 params.counts = 1
 params.prefix = "VA"
-params.force_file = "."
+params.force_file = "NA"
 params.chr_changes = "1:10"
 params.min_len = 3000000
+params.threads = 1
 
 
 process Getstats {
@@ -60,7 +61,7 @@ process Simulate {
     input:
     path new_bed_files
     path input_file
-    val prefix
+    val threads
 
     output:
     path "*R1.fq" , emit: R1
@@ -78,7 +79,7 @@ process Simulate {
                 anotherfname="\${anotherfname%.*}" 
                 if [ \${filename} == \${anotherfname} ]
                 then
-                    ngsngs -i \${m_line} -c 10 -l 120 -seq PE -f fq -qs 30 -incl \${file} -o ${filename}
+                    ngsngs -i \${m_line} -c 10 -t ${threads} -l 120 -seq PE -f fq -qs 30 -incl \${file} -o ${filename}
                 fi
             done < $input_file
     done
@@ -107,7 +108,7 @@ process OUT {
 workflow {
     beds = Getstats(Channel.fromPath(params.path_file))
     randomizer = Randomize(beds.collect(), Channel.fromPath((params.force_file), params.chr_changes, params.min_len)
-    Simulate(randomizer.collect(), Channel.fromPath(params.path_file), params.prefix)
+    Simulate(randomizer.collect(), Channel.fromPath(params.path_file),  params.threads)
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2)
     OUT(Paired_reads, params.prefix)
 }
