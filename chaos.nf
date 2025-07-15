@@ -9,7 +9,7 @@ Pipeline parameters
 
 params.path_file = "files.txt"
 params.outdir = "results"
-params.counts = 1
+params.counts = 1 // next feature
 params.prefix = "VA"
 params.force_file = "NA"
 params.chr_changes = "1:10"
