@@ -8,8 +8,8 @@ Pipeline parameters
 */
 
 params.path_file = "files.txt"
-params.outdir = "results"
-params.counts = 1 // next feature
+params.outdir = './results'
+params.counts = 1
 params.prefix = "VA"
 params.force_file = "NA"
 params.chr_changes = "1:10"
@@ -64,8 +64,8 @@ process Simulate {
     val threads
 
     output:
-    path "*R1.fq" , emit: R1
-    path "*R2.fq", emit: R2
+    path "*R1.fq.gz" , emit: R1
+    path "*R2.fq.gz", emit: R2
 
     script:
     """
@@ -77,7 +77,7 @@ process Simulate {
                 filename="\${filename%.*}" 
                 if [ *\${filename}* == \${file} ]
                 then
-                    ngsngs -i \${m_line} -c 10 -l 120 -seq PE -f fq -qs 30 -incl \${file} -o \${filename}
+                    ngsngs -i \${m_line} -t ${threads} -c 0.05 -l 120 -seq PE -f fq.gz -qs 30 -incl \${file} -o \${filename}
                 fi
             done < $input_file
     done
@@ -86,19 +86,20 @@ process Simulate {
 
 
 process OUT {
-    publishDir params.outdir, mode: 'copy', pattern: '*.fq'
+    publishDir params.outdir, mode: 'move', pattern: '*.fq'
 
     input:
     tuple path(r1), path(r2)
     val prefix
 
     output:
-    path "*.fq"
+    path "${prefix}_R1.fq.gz", emit: final_R1
+    path "${prefix}_R2.fq.gz", emit: final_R2
 
     script:
     """
-    cat ${r1} > ${prefix}_R1.fq
-    cat ${r2} > ${prefix}_R2.fq
+    zcat ${r1} >> ${prefix}_R1.fq.gz
+    zcat ${r2} >> ${prefix}_R2.fq.gz
     """
 }
 
@@ -107,6 +108,6 @@ workflow {
     beds = Getstats(Channel.fromPath(params.path_file))
     randomizer = Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len)
     Simulate(randomizer.collect(), Channel.fromPath(params.path_file),  params.threads)
-    Paired_reads = Simulate.out.R1.combine(Simulate.out.R2)
+    Paired_reads = Simulate.out.R1.combine(Simulate.out.R2.collect())
     OUT(Paired_reads, params.prefix)
 }
