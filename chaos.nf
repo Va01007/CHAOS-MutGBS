@@ -77,7 +77,7 @@ process Simulate {
                 filename="\${filename%.*}" 
                 if [ *\${filename}* == \${file} ]
                 then
-                    ngsngs -i \${m_line} -t ${threads} -c 0.05 -l 120 -seq PE -f fq.gz -qs 30 -incl \${file} -o \${filename}
+                    ngsngs -i \${m_line} -t ${threads} -c 0.05 -l 120 -seq PE -f fq.gz -qs 36 -incl \${file} -o \${filename}
                 fi
             done < $input_file
     done
@@ -86,7 +86,7 @@ process Simulate {
 
 
 process OUT {
-    publishDir params.outdir, mode: 'move', pattern: '*.fq'
+    publishDir params.outdir, mode: 'move', pattern: '*.fq.gz'
 
     input:
     tuple path(r1), path(r2)
