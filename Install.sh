@@ -4,7 +4,6 @@
 conda create -y -n CHAOS_MutGBS python=3.9 \
     bioconda::nextflow \
     bioconda::bioawk \
-    bioconda::htslib \
     conda-forge::make \
     conda-forge::automake \
     conda-forge::autoconf \
@@ -21,11 +20,15 @@ conda activate CHAOS_MutGBS
 # Clone repositories
 git clone https://github.com/Va01007/CHAOS-MutGBS.git
 cd CHAOS-MutGBS
-git clone https://github.com/RAHenriksen/NGSNGS.git
 
-# Build NGSNGS with Conda's htslib
-cd NGSNGS
+git clone https://github.com/samtools/htslib.git
+git clone https://github.com/RAHenriksen/NGSNGS.git
+cd htslib
+
+git submodule update --init --recursive
 make
+cd ../NGSNGS; make HTSSRC=../htslib
+
 
 # Add to PATH within environment
 mkdir -p $CONDA_PREFIX/envs/CHAOS_MutGBS/bin
