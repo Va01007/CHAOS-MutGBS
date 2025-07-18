@@ -40,15 +40,18 @@ process Getstats {
 
 
 process Randomize {
+    publishDir "${params.outdir}/${params.prefix}", mode: 'move', pattern: '*.txt'
 
     input:
     path bed_files
     path force_file
     val chr_changes
     val min_len
+    val prefix
 
     output:
     path "*_edited.bed"
+    path "log.txt"
 
     script:
     """
@@ -110,7 +113,7 @@ process OUT {
 
 workflow {
     beds = Getstats(Channel.fromPath(params.path_file))
-    randomizer = Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len)
+    randomizer = Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len, params.prefix)
     Simulate(randomizer.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length, params.coverage)
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2.collect())
     OUT(Paired_reads, params.prefix)
