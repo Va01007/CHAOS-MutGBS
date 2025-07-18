@@ -15,6 +15,7 @@ params.force_file = "NA"
 params.chr_changes = "1:10"
 params.min_len = 3000000
 params.read_length = 120
+params.coverage = 0.05
 params.threads = 1
 
 
@@ -64,6 +65,7 @@ process Simulate {
     path input_file
     val threads
     val length
+    val cov
 
     output:
     path "*R1.fq.gz" , emit: R1
@@ -79,7 +81,7 @@ process Simulate {
                 filename="\${filename%.*}" 
                 if [ *\${filename}* == \${file} ]
                 then
-                    ngsngs -i \${m_line} -t ${threads} -c 0.05 -l ${length} -seq PE -f fq.gz -qs 36 -incl \${file} -o \${filename}
+                    ngsngs -i \${m_line} -t ${threads} -c ${cov} -l ${length} -seq PE -f fq.gz -qs 36 -incl \${file} -o \${filename}
                 fi
             done < $input_file
     done
@@ -109,7 +111,7 @@ process OUT {
 workflow {
     beds = Getstats(Channel.fromPath(params.path_file))
     randomizer = Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len)
-    Simulate(randomizer.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length)
+    Simulate(randomizer.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length, params.coverage)
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2.collect())
     OUT(Paired_reads, params.prefix)
 }
