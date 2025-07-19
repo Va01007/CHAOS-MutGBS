@@ -10,7 +10,7 @@ conda create -y -n CHAOS_MutGBS python=3.9 \
     conda-forge::libtool \
     conda-forge::zlib \
     conda-forge::bzip2 \
-    conda-forge::r-renv
+    conda-forge::r-renv \
     conda-forge::xz \
     conda-forge::curl \
     conda-forge::gcc \
