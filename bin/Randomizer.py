@@ -1,8 +1,8 @@
 import sys
 import random
 
-
-def Order_beds(path_file:str, beds_list:list):
+# не хватает документации к функциям что делает каждая функция. Не всегда ясно из названия.
+def Order_beds(path_file:str, beds_list:list): # в питоне по конвенции названия функций со строчной буквы
     with open(path_file, "r") as path_f:
         path_list = path_f.readlines()
     ordered_beds = []
@@ -12,11 +12,11 @@ def Order_beds(path_file:str, beds_list:list):
                 ordered_beds.append(bed)
     return ordered_beds
 
-
-def parse_files(file:str):
-    with open(file, "r") as bed:
+# что за файлы парсятся?
+def parse_files(file:str): # почему не через Pathlib? Так точно стабильнее будет работать, особенно если дается какой-то несуществующий файл.
+    with open(file, "r") as bed: # "r" и так по дефолту
         lines = bed.readlines()
-    Genome = []
+    Genome = [] # https://peps.python.org/pep-0008/#function-and-variable-names
     for line in lines:
         args = line.split()
         Genome.append([args[0], int(args[2])])
@@ -63,7 +63,7 @@ def check_overlaps(in_list:list):
             chr_dict[i[2][0]] = [[i[2][1], i[2][2]]]
     return True
 
-
+# к этой фукнции точно нужна документация
 def random_intervals(Genome_list:dict, bed_file:list, f_file: str, changes:str, min_len:int):
     if f_file == "NA":
         vals = sorted(list(map(int, changes.split(":"))))
@@ -106,7 +106,7 @@ def random_intervals(Genome_list:dict, bed_file:list, f_file: str, changes:str, 
             if checker == True:
                 pass
             else:
-                print("Intervals are overlapped! Check your file and change it!")
+                print("Intervals are overlapped! Check your file and change it!") # может лучше эту проверку добавить на старте скрипта, а не ближе к концу?
                 sys.exit()
         except:
             print("Something wrong with force file!")

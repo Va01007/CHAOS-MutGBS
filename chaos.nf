@@ -9,17 +9,18 @@ Pipeline parameters
 
 params.path_file = "files.txt"
 params.outdir = './results'
-params.counts = 1
+params.counts = 1 // Этот параметр нигде не используется
 params.prefix = "VA"
-params.force_file = "NA"
-params.chr_changes = "1:10"
-params.min_len = 3000000
-params.read_length = 120
-params.coverage = 0.05
-params.threads = 1
+params.force_file = "NA"  // Название не понятно. Не ясно почему NA строкой.
+params.chr_changes = "1:10" // Видимо это границы количества интрогрессий. Лучше разбить на два параметра - минимальное и максимальное значение. Легче будет проверять граничные условия. Например, -1.
+params.min_len = 3000000 // Тоже сходу не ясно минимальная длина чего именно.
+params.read_length = 120 // Немного необычное дефолтное значение, мне кажется.
+params.coverage = 0.05 // В документации не увидел описания что это такое. Стоит дать более говорящее название.
+params.threads = 1 // Задокументируй лучше. Это не просто для симуляции количество ядер, а именно для ngsngs
 
 
 process Getstats {
+    // Не хвататет описания что делает каждый процесс.
 
     input:
     path input_file
@@ -40,7 +41,7 @@ process Getstats {
 
 
 process Randomize {
-    publishDir "${params.outdir}/${params.prefix}", mode: 'move', pattern: '*.txt'
+    publishDir "${params.outdir}/${params.prefix}", mode: 'move', pattern: '*.txt' // Перемещение файлов не ломает пайплайн?
 
     input:
     path bed_files
@@ -84,6 +85,7 @@ process Simulate {
                 filename="\${filename%.*}" 
                 if [ *\${filename}* == \${file} ]
                 then
+                    // Почему qs именно 36? Почему это тоже не вынес в параметры пайплайна?
                     ngsngs -i \${m_line} -t ${threads} -c ${cov} -l ${length} -seq PE -f fq.gz -qs 36 -incl \${file} -o \${filename}
                 fi
             done < $input_file
@@ -93,6 +95,7 @@ process Simulate {
 
 
 process OUT {
+    // Нужно процессам давать более понятные названия
     publishDir params.outdir, mode: 'move', pattern: '*.fq.gz'
 
     input:
@@ -100,8 +103,8 @@ process OUT {
     val prefix
 
     output:
-    path "${prefix}_R1.fq.gz", emit: final_R1
-    path "${prefix}_R2.fq.gz", emit: final_R2
+    path "${prefix}_R1.fq.gz", emit: final_R1 // Зачем здесь эмитить если никуда дальше не идет это?
+    path "${prefix}_R2.fq.gz", emit: final_R2 // Такой же вопрос
 
     script:
     """

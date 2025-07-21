@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Create and activate Conda environment
+# Стоит создать yaml файл для среды и создавать через него.
 conda create -y -n CHAOS_MutGBS python=3.9 \
     bioconda::nextflow \
     bioconda::bioawk \
@@ -17,11 +18,16 @@ conda create -y -n CHAOS_MutGBS python=3.9 \
     -c conda-forge -c bioconda
 
 conda activate CHAOS_MutGBS
+# conda activate внутри скрипта не работает без conda init потому что в момент начала выполнения скрипта открывается новый терминал которые не знает про conda. Соответственно, при запуске скрипта у меня вылетела ошибка "CondaError: Run 'conda init' before 'conda activate'".
+# К сожалению, выполнение скрипта на это не остановилось. Стоит использовать bash strict mode (погугли) для таких ситуаций.
 
 # Clone repositories
-git clone https://github.com/Va01007/CHAOS-MutGBS.git
-cd CHAOS-MutGBS
+# Разве запуск самого этого скрипта не подразумевает, что эта команда уже выполнена?
+# git clone https://github.com/Va01007/CHAOS-MutGBS.git
+# cd CHAOS-MutGBS
 
+# Почему нельзя установить ngsngs прямо из репозиториев конды? htslib сразу подтянется как зависимость.
+# В результате весь этот скрипт сводится к тому, что нужно создать окружение конды, а это делается через yaml файл и можно вообще этот скрипт удалить и вместо него сделать yaml файл с фиксацией версий софта в окружении.
 git clone https://github.com/samtools/htslib.git
 git clone https://github.com/RAHenriksen/NGSNGS.git
 cd htslib
