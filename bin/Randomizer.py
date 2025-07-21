@@ -2,6 +2,17 @@ import sys
 import random
 
 
+def Order_beds(path_file:str, beds_list:list):
+    with open(path_file, "r") as path_f:
+        path_list = path_f.readlines()
+    ordered_beds = []
+    for path in path_list:
+        for bed in beds_list:
+            if bed[:-4] in path:
+                ordered_beds.append(bed)
+    return ordered_beds
+
+
 def parse_files(file:str):
     with open(file, "r") as bed:
         lines = bed.readlines()
@@ -132,9 +143,9 @@ def write_files(intervals_lists:list, gen:dict, beds:list):
                     add_bed.write(f"{other_intervals[2][0]}\t{other_intervals[2][1]}\t{other_intervals[2][2]}\n")
 
 if __name__ == "__main__":
-    Bed_list = sys.argv[4:]
+    Bed_list = Order_beds(sys.argv[4], sys.argv[5:])
     Genomes = {}
     for bed_file in Bed_list:
         Genomes[bed_file] = parse_files(bed_file)
-    intervals = random_intervals(Genomes, Bed_list[::-1], sys.argv[1], sys.argv[2], int(sys.argv[3]))
-    write_files(intervals, Genomes, Bed_list[::-1])
+    intervals = random_intervals(Genomes, Bed_list, sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    write_files(intervals, Genomes, Bed_list)
