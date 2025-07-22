@@ -16,6 +16,7 @@ params.chr_changes = "1:10" // Видимо это границы количес
 params.min_len = 3000000 // Тоже сходу не ясно минимальная длина чего именно.
 params.read_length = 120 // Немного необычное дефолтное значение, мне кажется.
 params.coverage = 0.05 // В документации не увидел описания что это такое. Стоит дать более говорящее название.
+params.quality_score = 36
 params.threads = 1 // Задокументируй лучше. Это не просто для симуляции количество ядер, а именно для ngsngs
 
 
@@ -70,6 +71,7 @@ process Simulate {
     val threads
     val length
     val cov
+    val quality
 
     output:
     path "*R1.fq.gz" , emit: R1
@@ -85,8 +87,7 @@ process Simulate {
                 filename="\${filename%.*}" 
                 if [ *\${filename}* == \${file} ]
                 then
-                    // Почему qs именно 36? Почему это тоже не вынес в параметры пайплайна?
-                    ngsngs -i \${m_line} -t ${threads} -c ${cov} -l ${length} -seq PE -f fq.gz -qs 36 -incl \${file} -o \${filename}
+                    ngsngs -i \${m_line} -t ${threads} -c ${cov} -l ${length} -seq PE -f fq.gz -qs ${quality}  -incl \${file} -o \${filename}
                 fi
             done < $input_file
     done
@@ -103,8 +104,8 @@ process OUT {
     val prefix
 
     output:
-    path "${prefix}_R1.fq.gz", emit: final_R1 // Зачем здесь эмитить если никуда дальше не идет это?
-    path "${prefix}_R2.fq.gz", emit: final_R2 // Такой же вопрос
+    path "${prefix}_R1.fq.gz"
+    path "${prefix}_R2.fq.gz"
 
     script:
     """
@@ -117,7 +118,7 @@ process OUT {
 workflow {
     beds = Getstats(Channel.fromPath(params.path_file))
     Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len, Channel.fromPath(params.path_file))
-    Simulate(Randomize.out.BD.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length, params.coverage)
+    Simulate(Randomize.out.BD.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length, params.coverage, params.quality_score)
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2.collect())
     OUT(Paired_reads, params.prefix)
 }
