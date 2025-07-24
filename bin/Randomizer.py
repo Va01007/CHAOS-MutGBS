@@ -1,5 +1,6 @@
 import sys
 import random
+import pathlib
 
 
 def order_beds(path_file:str, beds_list:list): 
@@ -33,11 +34,11 @@ def read_files(file:str):
     """
     with open(file) as bed:
         lines = bed.readlines()
-    Genome = []
+    Chromosome_intervals = []
     for line in lines:
         args = line.split()
-        Genome.append([args[0], int(args[2])])
-    return Genome
+        Chromosome_intervals.append([args[0], int(args[2])])
+    return Chromosome_intervals
 
 
 def get_span(Chr_length:list, min_length:int):
