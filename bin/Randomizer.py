@@ -1,6 +1,6 @@
 import sys
 import random
-import pathlib
+from pathlib import Path
 
 
 def order_beds(path_file:str, beds_list:list): 
@@ -13,13 +13,15 @@ def order_beds(path_file:str, beds_list:list):
     Returns:
         List of BED files ordered according to path_file
     """
-    with open(path_file) as path_f:
+    path_file = Path(path_file)
+    with path_file.open() as path_f:
         path_list = path_f.readlines()
     ordered_beds = []
     for path in path_list:
         for bed in beds_list:
-            if bed[:-4] in path:
-                ordered_beds.append(bed)
+            bed_path = Path(bed)
+            if bed_path.stem in path:
+                ordered_beds.append(bed_path)
     return ordered_beds
 
 
@@ -32,7 +34,8 @@ def read_files(file:str):
     Returns:
         List of [chromosome, length] pairs
     """
-    with open(file) as bed:
+    file_path = Path(file)
+    with file_path.open() as bed:
         lines = bed.readlines()
     Chromosome_intervals = []
     for line in lines:
@@ -184,11 +187,13 @@ def write_files(intervals_lists:list, gen:dict, beds:list):
         genomes: Dictionary of genome data
         beds: List of BED files
     """
-    with open("log.txt", "w") as log:
+    log_path = Path("log.txt")
+    with log_path.open("w") as log:
         [log.write(f"{log_interval[0]}\t{log_interval[1]}\t{log_interval[2][0]}\t{log_interval[2][1]}\t{log_interval[2][2]}\n") \
          for log_interval in intervals_lists]
     beds_out = []
-    with open(f"{beds[0][:-4]}_edited.bed", "w") as main:
+    main_bed_path = Path(f"{beds[0].stem}_edited.bed")  # Изменение: используем .stem
+    with main_bed_path.open("w") as main:  # Изменение: используем .open()
         for chromosome in gen[beds[0]]:
             found_match = False
             for current_interval in intervals_lists:
@@ -206,10 +211,12 @@ def write_files(intervals_lists:list, gen:dict, beds:list):
             if found_match == False:
                 main.write(f"{chromosome[0]}\t0\t{chromosome[1]}\n")
     for bed in set(beds_out):
-        with open(f"{bed[:-4]}_edited.bed", "w") as add_bed:
+        add_bed_path = Path(f"{Path(bed).stem}_edited.bed")
+        with add_bed_path.open("w") as add_bed:
             for other_intervals in intervals_lists:
                 if other_intervals[1] == bed:
                     add_bed.write(f"{other_intervals[2][0]}\t{other_intervals[2][1]}\t{other_intervals[2][2]}\n")
+
 
 if __name__ == "__main__":
     Bed_list = order_beds(sys.argv[4], sys.argv[5:])
