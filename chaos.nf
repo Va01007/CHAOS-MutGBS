@@ -48,7 +48,12 @@ Performance:
 */
 
 process Getstats {
-
+    /*
+    Process: Getstats
+    Purpose: Generates BED files with chromosome lengths from input reference genomes
+    Input: File containing paths to reference genome files
+    Output: One BED file per reference genome with chromosome coordinates
+    */
     input:
     path input_file
 
@@ -68,6 +73,12 @@ process Getstats {
 
 
 process Randomize {
+    /*
+    Process: Randomize
+    Purpose: Selects random regions for introgression simulation
+    Input: BED files from Getstats, optional forced regions file
+    Output: Modified BED files with selected regions and log file
+    */
     publishDir "${params.output_dir}/${params.prefix}", mode: 'move', pattern: '*.txt'
 
     input:
@@ -90,7 +101,12 @@ process Randomize {
 
 
 process Simulate {
-
+    /*
+    Process: Simulate
+    Purpose: Simulates paired-end reads for selected regions
+    Input: Modified BED files, reference genomes, simulation parameters
+    Output: Gzipped FASTQ files (R1 and R2) for each sample
+    */
     input:
     path new_bed_files
     path input_file
@@ -121,7 +137,13 @@ process Simulate {
 
 
 process OUT {
-    publishDir params.output_dir, mode: 'move', pattern: '*.fq.gz'
+    /*
+    Process: OUT
+    Purpose: Merges all simulated reads into final output files
+    Input: All simulated read pairs from Simulate process
+    Output: Consolidated FASTQ files with specified prefix
+    */
+    publishDir params.outdir, mode: 'move', pattern: '*.fq.gz'
 
     input:
     tuple path(r1), path(r2)
