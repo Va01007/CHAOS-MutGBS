@@ -7,21 +7,47 @@ Pipeline parameters
 ========================================================================================
 */
 
-params.path_file = "files.txt"
-params.outdir = './results'
-params.counts = 1 // Этот параметр нигде не используется
-params.prefix = "VA"
-params.force_file = "NA"  // Название не понятно. Не ясно почему NA строкой.
-params.chr_changes = "1:10" // Видимо это границы количества интрогрессий. Лучше разбить на два параметра - минимальное и максимальное значение. Легче будет проверять граничные условия. Например, -1.
-params.min_len = 3000000 // Тоже сходу не ясно минимальная длина чего именно.
-params.read_length = 120 // Немного необычное дефолтное значение, мне кажется.
-params.coverage = 0.05 // В документации не увидел описания что это такое. Стоит дать более говорящее название.
-params.quality_score = 36
-params.threads = 1 // Задокументируй лучше. Это не просто для симуляции количество ядер, а именно для ngsngs
+// Input/Output parameters
+params.input_files = "files.txt"          // Path to file containing list of reference genome files
+params.output_dir = './results'          // Output directory for pipeline results
+params.output_prefix = "VA"              // Prefix for output filenames
 
+// Introgression parameters
+params.forced_regions = "NA"             // File with predefined introgression regions (NA = not specified)
+params.introgression_range = "1:10"      // Range of introgressions per chromosome (min:max)
+params.min_region_length = 3000000       // Minimum introgression region length (base pairs)
+
+// Read simulation parameters
+params.read_length = 120                 // Simulated read length (base pairs)
+params.coverage_depth = 0.05             // Sequencing coverage depth (fractional)
+params.base_quality = 36                 // Simulated read quality (Phred score)
+
+// Execution parameters
+params.threads = 1                       // Number of CPU threads for ngsngs simulator
+
+/*
+PARAMETER REFERENCE:
+
+Input/Output Configuration:
+- input_files:       Text file containing paths to reference genome FASTA files
+- output_dir:        Directory path for pipeline output files
+- output_prefix:     Prefix for all output filenames
+
+Introgression Settings:
+- forced_regions:    BED file specifying forced introgression regions ("NA" for auto-selection)
+- introgression_range: Number of introgressions per chromosome as "min:max" 
+- min_region_length: Minimum length for introgression regions in base pairs
+
+Read Simulation:
+- read_length:      Length of simulated sequencing reads (typical: 100-150bp)
+- coverage_depth:   Target sequencing coverage (0.05 = 5% of genome)
+- base_quality:     Mean base quality score for simulated reads
+
+Performance:
+- threads:         CPU cores allocated for ngsngs read simulation
+*/
 
 process Getstats {
-    // Не хвататет описания что делает каждый процесс.
 
     input:
     path input_file
@@ -42,7 +68,7 @@ process Getstats {
 
 
 process Randomize {
-    publishDir "${params.outdir}/${params.prefix}", mode: 'move', pattern: '*.txt' // Перемещение файлов не ломает пайплайн?
+    publishDir "${params.output_dir}/${params.prefix}", mode: 'move', pattern: '*.txt'
 
     input:
     path bed_files
@@ -71,7 +97,6 @@ process Simulate {
     val threads
     val length
     val cov
-    val quality
 
     output:
     path "*R1.fq.gz" , emit: R1
@@ -87,7 +112,7 @@ process Simulate {
                 filename="\${filename%.*}" 
                 if [ *\${filename}* == \${file} ]
                 then
-                    ngsngs -i \${m_line} -t ${threads} -c ${cov} -l ${length} -seq PE -f fq.gz -qs ${quality}  -incl \${file} -o \${filename}
+                    ngsngs -i \${m_line} -t ${threads} -c ${cov} -l ${length} -seq PE -f fq.gz -qs 36 -incl \${file} -o \${filename}
                 fi
             done < $input_file
     done
@@ -96,16 +121,15 @@ process Simulate {
 
 
 process OUT {
-    // Нужно процессам давать более понятные названия
-    publishDir params.outdir, mode: 'move', pattern: '*.fq.gz'
+    publishDir params.output_dir, mode: 'move', pattern: '*.fq.gz'
 
     input:
     tuple path(r1), path(r2)
     val prefix
 
     output:
-    path "${prefix}_R1.fq.gz"
-    path "${prefix}_R2.fq.gz"
+    path "${prefix}_R1.fq.gz", emit: final_R1
+    path "${prefix}_R2.fq.gz", emit: final_R2
 
     script:
     """
@@ -116,9 +140,30 @@ process OUT {
 
 
 workflow {
-    beds = Getstats(Channel.fromPath(params.path_file))
-    Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len, Channel.fromPath(params.path_file))
-    Simulate(Randomize.out.BD.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length, params.coverage, params.quality_score)
+    // Generate BED files from reference genomes
+    beds = Getstats(Channel.fromPath(params.input_files))
+    
+    // Randomize introgression regions
+    Randomize(
+        beds.collect(), 
+        Channel.fromPath(params.forced_regions), 
+        params.introgression_range, 
+        params.min_region_length, 
+        Channel.fromPath(params.input_files)
+    )
+    
+    // Simulate reads for each region
+    Simulate(
+        Randomize.out.BD.collect(), 
+        Channel.fromPath(params.input_files),
+        params.threads,
+        params.read_length,
+        params.coverage_depth
+    )
+    
+    // Combine paired reads
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2.collect())
-    OUT(Paired_reads, params.prefix)
+    
+    // Merge all reads into final output
+    OUT(Paired_reads, params.output_prefix)
 }
