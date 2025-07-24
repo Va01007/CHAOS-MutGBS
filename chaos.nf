@@ -143,7 +143,7 @@ process OUT {
     Input: All simulated read pairs from Simulate process
     Output: Consolidated FASTQ files with specified prefix
     */
-    publishDir params.outdir, mode: 'move', pattern: '*.fq.gz'
+    publishDir params.outdir, mode: 'copy', pattern: '*.fq.gz'
 
     input:
     tuple path(r1), path(r2)
