@@ -1,0 +1,22 @@
+name: CHAOS_MutGBS
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - bioconda::nextflow
+  - bioconda::bioawk
+  - bioconda::ngsngs
+  - bioconda::htslib
+  - conda-forge::make
+  - conda-forge::automake
+  - conda-forge::autoconf
+  - conda-forge::libtool
+  - conda-forge::zlib
+  - conda-forge::bzip2
+  - conda-forge::r-renv
+  - conda-forge::xz
+  - conda-forge::curl
+  - conda-forge::gcc

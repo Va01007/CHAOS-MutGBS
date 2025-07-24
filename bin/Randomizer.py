@@ -1,29 +1,62 @@
 import sys
 import random
+from pathlib import Path
 
 
-def Order_beds(path_file:str, beds_list:list):
-    with open(path_file, "r") as path_f:
+def order_beds(path_file:str, beds_list:list): 
+    """Orders BED files according to the priority specified in the path file.
+    
+    Args:
+        path_file: File containing paths in priority order
+        beds_list: List of BED files to be ordered
+        
+    Returns:
+        List of BED files ordered according to path_file
+    """
+    path_file = Path(path_file)
+    with path_file.open() as path_f:
         path_list = path_f.readlines()
     ordered_beds = []
     for path in path_list:
         for bed in beds_list:
-            if bed[:-4] in path:
-                ordered_beds.append(bed)
+            bed_path = Path(bed)
+            if bed_path.stem in path:
+                ordered_beds.append(bed_path)
     return ordered_beds
 
 
-def parse_files(file:str):
-    with open(file, "r") as bed:
+def read_files(file:str):
+    """reads a BED file and extracts chromosome information.
+    
+    Args:
+        file: Path to BED file
+        
+    Returns:
+        List of [chromosome, length] pairs
+    """
+    file_path = Path(file)
+    with file_path.open() as bed:
         lines = bed.readlines()
-    Genome = []
+    Chromosome_intervals = []
     for line in lines:
         args = line.split()
-        Genome.append([args[0], int(args[2])])
-    return Genome
+        Chromosome_intervals.append([args[0], int(args[2])])
+    return Chromosome_intervals
 
 
 def get_span(Chr_length:list, min_length:int):
+    """Generates a random genomic interval meeting minimum length requirement.
+    
+    Args:
+        chr_length: [chromosome, length] pair
+        min_length: Minimum required interval length
+        
+    Returns:
+        [chromosome, start, end] interval
+        
+    Raises:
+        SystemExit: If min_length exceeds chromosome length
+    """
     if Chr_length[1] <= min_length:
         print("The minimum length of a chromosomal change exceeds the length of a chromosome!")
         sys.exit()
@@ -42,6 +75,15 @@ def get_span(Chr_length:list, min_length:int):
 
 
 def against_span(Interval:list, Add_length:list):
+    """Creates complementary interval for translocation operations.
+    
+    Args:
+        interval: Original interval [chr, start, end]
+        add_length: Target chromosome [chr, length]
+        
+    Returns:
+        New interval adjusted for translocation
+    """
     if Interval[2] <= Add_length[1]:
         return_list = [Add_length[0], Interval[1], Interval[2]]
     else:
@@ -51,6 +93,14 @@ def against_span(Interval:list, Add_length:list):
 
 
 def check_overlaps(in_list:list):
+    """Checks for overlapping intervals in the mutation list.
+    
+    Args:
+        in_list: List of mutation intervals
+        
+    Returns:
+        True if no overlaps found, False otherwise
+    """
     chr_dict = {}
     for i in in_list:
         if i[2][0] in chr_dict:
@@ -65,6 +115,21 @@ def check_overlaps(in_list:list):
 
 
 def random_intervals(Genome_list:dict, bed_file:list, f_file: str, changes:str, min_len:int):
+    """Generates random genomic intervals for mutations.
+    
+    Args:
+        genome_list: Dictionary of genome data
+        bed_file: List of BED files
+        f_file: Path to forced intervals file or "NA"
+        changes: Mutation count range (e.g., "5:10")
+        min_len: Minimum mutation length
+        
+    Returns:
+        List of mutation intervals
+        
+    Raises:
+        SystemExit: If forced intervals overlap or file is invalid
+    """
     if f_file == "NA":
         vals = sorted(list(map(int, changes.split(":"))))
         x = random.randint(vals[0], vals[1])
@@ -95,7 +160,7 @@ def random_intervals(Genome_list:dict, bed_file:list, f_file: str, changes:str, 
                     intervals_list.append(["Delet", bed_file[0], in_interval])
             checker = check_overlaps(intervals_list)
     else:
-        with open(f_file, "r") as force_file:
+        with open(f_file) as force_file:
             lines = force_file.readlines()
         intervals_list = []
         for line in lines:
@@ -115,11 +180,20 @@ def random_intervals(Genome_list:dict, bed_file:list, f_file: str, changes:str, 
 
 
 def write_files(intervals_lists:list, gen:dict, beds:list):
-    with open("log.txt", "w") as log:
+    """Writes mutation results to output files.
+    
+    Args:
+        intervals_list: List of mutation intervals
+        genomes: Dictionary of genome data
+        beds: List of BED files
+    """
+    log_path = Path("log.txt")
+    with log_path.open("w") as log:
         [log.write(f"{log_interval[0]}\t{log_interval[1]}\t{log_interval[2][0]}\t{log_interval[2][1]}\t{log_interval[2][2]}\n") \
          for log_interval in intervals_lists]
     beds_out = []
-    with open(f"{beds[0][:-4]}_edited.bed", "w") as main:
+    main_bed_path = Path(f"{beds[0].stem}_edited.bed")  # Изменение: используем .stem
+    with main_bed_path.open("w") as main:  # Изменение: используем .open()
         for chromosome in gen[beds[0]]:
             found_match = False
             for current_interval in intervals_lists:
@@ -137,15 +211,17 @@ def write_files(intervals_lists:list, gen:dict, beds:list):
             if found_match == False:
                 main.write(f"{chromosome[0]}\t0\t{chromosome[1]}\n")
     for bed in set(beds_out):
-        with open(f"{bed[:-4]}_edited.bed", "w") as add_bed:
+        add_bed_path = Path(f"{Path(bed).stem}_edited.bed")
+        with add_bed_path.open("w") as add_bed:
             for other_intervals in intervals_lists:
                 if other_intervals[1] == bed:
                     add_bed.write(f"{other_intervals[2][0]}\t{other_intervals[2][1]}\t{other_intervals[2][2]}\n")
 
+
 if __name__ == "__main__":
-    Bed_list = Order_beds(sys.argv[4], sys.argv[5:])
+    Bed_list = order_beds(sys.argv[4], sys.argv[5:])
     Genomes = {}
     for bed_file in Bed_list:
-        Genomes[bed_file] = parse_files(bed_file)
+        Genomes[bed_file] = read_files(bed_file)
     intervals = random_intervals(Genomes, Bed_list, sys.argv[1], sys.argv[2], int(sys.argv[3]))
     write_files(intervals, Genomes, Bed_list)

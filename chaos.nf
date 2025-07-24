@@ -7,20 +7,53 @@ Pipeline parameters
 ========================================================================================
 */
 
-params.path_file = "files.txt"
-params.outdir = './results'
-params.counts = 1
-params.prefix = "VA"
-params.force_file = "NA"
-params.chr_changes = "1:10"
-params.min_len = 3000000
-params.read_length = 120
-params.coverage = 0.05
-params.threads = 1
+// Input/Output parameters
+params.input_files = "files.txt"          // Path to file containing list of reference genome files
+params.output_dir = './results'          // Output directory for pipeline results
+params.output_prefix = "VA"              // Prefix for output filenames
 
+// Introgression parameters
+params.forced_regions = "NA"             // File with predefined introgression regions (NA = not specified)
+params.introgression_range = "1:10"      // Range of introgressions per chromosome (min:max)
+params.min_region_length = 3000000       // Minimum introgression region length (base pairs)
+
+// Read simulation parameters
+params.read_length = 120                 // Simulated read length (base pairs)
+params.coverage_depth = 0.05             // Sequencing coverage depth (fractional)
+params.base_quality = 36                 // Simulated read quality (Phred score)
+
+// Execution parameters
+params.threads = 1                       // Number of CPU threads for ngsngs simulator
+
+/*
+PARAMETER REFERENCE:
+
+Input/Output Configuration:
+- input_files:       Text file containing paths to reference genome FASTA files
+- output_dir:        Directory path for pipeline output files
+- output_prefix:     Prefix for all output filenames
+
+Introgression Settings:
+- forced_regions:    BED file specifying forced introgression regions ("NA" for auto-selection)
+- introgression_range: Number of introgressions per chromosome as "min:max" 
+- min_region_length: Minimum length for introgression regions in base pairs
+
+Read Simulation:
+- read_length:      Length of simulated sequencing reads (typical: 100-150bp)
+- coverage_depth:   Target sequencing coverage (0.05 = 5% of genome)
+- base_quality:     Mean base quality score for simulated reads
+
+Performance:
+- threads:         CPU cores allocated for ngsngs read simulation
+*/
 
 process Getstats {
-
+    /*
+    Process: Getstats
+    Purpose: Generates BED files with chromosome lengths from input reference genomes
+    Input: File containing paths to reference genome files
+    Output: One BED file per reference genome with chromosome coordinates
+    */
     input:
     path input_file
 
@@ -40,7 +73,13 @@ process Getstats {
 
 
 process Randomize {
-    publishDir "${params.outdir}/${params.prefix}", mode: 'move', pattern: '*.txt'
+    /*
+    Process: Randomize
+    Purpose: Selects random regions for introgression simulation
+    Input: BED files from Getstats, optional forced regions file
+    Output: Modified BED files with selected regions and log file
+    */
+    publishDir "${params.output_dir}/${params.prefix}", mode: 'move', pattern: '*.txt'
 
     input:
     path bed_files
@@ -62,7 +101,12 @@ process Randomize {
 
 
 process Simulate {
-
+    /*
+    Process: Simulate
+    Purpose: Simulates paired-end reads for selected regions
+    Input: Modified BED files, reference genomes, simulation parameters
+    Output: Gzipped FASTQ files (R1 and R2) for each sample
+    */
     input:
     path new_bed_files
     path input_file
@@ -93,7 +137,13 @@ process Simulate {
 
 
 process OUT {
-    publishDir params.outdir, mode: 'move', pattern: '*.fq.gz'
+    /*
+    Process: OUT
+    Purpose: Merges all simulated reads into final output files
+    Input: All simulated read pairs from Simulate process
+    Output: Consolidated FASTQ files with specified prefix
+    */
+    publishDir params.output_dir, mode: 'copy', pattern: '*.fq.gz'
 
     input:
     tuple path(r1), path(r2)
@@ -112,9 +162,30 @@ process OUT {
 
 
 workflow {
-    beds = Getstats(Channel.fromPath(params.path_file))
-    Randomize(beds.collect(), Channel.fromPath(params.force_file), params.chr_changes, params.min_len, Channel.fromPath(params.path_file))
-    Simulate(Randomize.out.BD.collect(), Channel.fromPath(params.path_file),  params.threads, params.read_length, params.coverage)
+    // Generate BED files from reference genomes
+    beds = Getstats(Channel.fromPath(params.input_files))
+    
+    // Randomize introgression regions
+    Randomize(
+        beds.collect(), 
+        Channel.fromPath(params.forced_regions), 
+        params.introgression_range, 
+        params.min_region_length, 
+        Channel.fromPath(params.input_files)
+    )
+    
+    // Simulate reads for each region
+    Simulate(
+        Randomize.out.BD.collect(), 
+        Channel.fromPath(params.input_files),
+        params.threads,
+        params.read_length,
+        params.coverage_depth
+    )
+    
+    // Combine paired reads
     Paired_reads = Simulate.out.R1.combine(Simulate.out.R2.collect())
-    OUT(Paired_reads, params.prefix)
+    
+    // Merge all reads into final output
+    OUT(Paired_reads, params.output_prefix)
 }
